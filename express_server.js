@@ -47,10 +47,14 @@ app.post("/urls", (req, res) => {
   urlDatabase[newShortUrl] = req.body.longURL;
 
   res.redirect(`/urls/${newShortUrl}`);
-  // app.get('/urls/:shortURL', (req, res) => {
-  //   const templateVars = { shortURL: newShortUrl, longURL: urlDatabase[newShortUrl]}; // longURL may need to change
-  //   res.render('urls_show', templateVars);
-  // });
+ 
+});
+
+app.post("/urls/:shortURL/delete", (req, res) => {
+  console.log(req.params.shortURL);
+  delete urlDatabase[req.params.shortURL];
+  res.redirect(`/urls`);
+ 
 });
 
 app.get("/u/:shortURL", (req, res) => {
