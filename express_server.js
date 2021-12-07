@@ -12,10 +12,10 @@ const generateRandomString = function() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = ' ';
   const charactersLength = characters.length;
-  for ( let i = 0; i < 5; i++) {
+  for ( let i = 0; i < 6; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
-  console.log(result); //debug line
+ 
   return result;
 }
 
@@ -37,19 +37,43 @@ app.get('/urls', (req, res) => {
   res.render('urls_index', templateVars);
 });
 
+
 app.get('/urls/new', (req, res) => {
   res.render("urls_new");
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);
-  res.send(generateRandomString());
+  const newShortUrl = generateRandomString();
+  urlDatabase[newShortUrl] = req.body.longURL;
+
+  res.redirect(`/urls/${newShortUrl}`);
+  // app.get('/urls/:shortURL', (req, res) => {
+  //   const templateVars = { shortURL: newShortUrl, longURL: urlDatabase[newShortUrl]}; // longURL may need to change
+  //   res.render('urls_show', templateVars);
+  // });
 });
+
+app.get("/u/:shortURL", (req, res) => {
+  if (urlDatabase[req.params.shortURL]) {
+    const longURL = urlDatabase[req.params.shortURL];
+    res.redirect(longURL);
+  } else {
+    res.statusCode = 404;
+    res.end('404 Page Not Found');
+
+  }
+  
+});
+
 
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]}; // longURL may need to change
   res.render('urls_show', templateVars);
 });
+
+
+
+
 
 //mabey needed?
 // app.get('/urls.json', (req, res) => {
