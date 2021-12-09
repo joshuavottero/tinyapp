@@ -20,24 +20,107 @@ const generateRandomString = function() {
  
   return result;
 };
+const findUser = function(userToFind){  
+  if (userToFind === undefined || userToFind == "") {
+    return undefined;
+  }
+  for (const user in users) {
+    if (users[user]["email"] === userToFind) {
+      return users[user];
+    }
+  }
+  return undefined;
+
+}
 
 const urlDatabase = {
   'b2xVn2': 'http://www.lighthouselabs.ca',
   '9sm5xk': 'http://www.google.com'
 };
 
+const users = {
+  "userRandomID" : {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-moneky-dinosaur"
+  },
+  "user2RandomID" : {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk"
+  },
+  "user3RandomID" : {
+    id: "user3RandomID",
+    email: "user3@example.com",
+    password: "123"
+  },
+
+}
+
+
+
 app.get('/', (req, res) => {
   res.send('Hello!');
 });
 
+app.get('/register', (req, res) => {
+  const templateVars = {
+    user: req.cookies["user_id"]
+  };
+  res.render("urls_register", templateVars);
+});
+
+app.get('/login', (req, res) => {
+  const templateVars = {
+    user: req.cookies["user_id"]
+  };
+  res.render("urls_login", templateVars);
+});
+
+app.post("/urls/login", (req, res) => {
+  res.redirect("/login");
+});
+
+app.post('/register', (req, res) => {
+
+  if (req.body.email === "" || req.body.password === "") {
+    res.statusCode = 400;
+    res.end('404 Bad Request, password and username must not be empty');
+  }
+
+  if (findUser(req.body.email) !== undefined) {
+    res.statusCode = 400;
+    res.end('400 Bad Request email is all ready in use');
+  }
+
+  const randomID = generateRandomString();
+  users[randomID] = {
+    id: randomID,
+    email: req.body.email,
+    password: req.body.password
+  }
+  console.log(users);
+  res.cookie("user_id", users[randomID].id);
+  res.redirect("/urls");
+});
+
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.userName);
-  console.log('Cookies: ', req.cookies)
+  user = findUser(req.body.email);
+  if (user === undefined) {
+    res.statusCode = 400;
+    res.end('403 Forbidden, user not found');
+  }
+  if (user.password !== req.body.password){
+    res.statusCode = 400;
+    res.end('403 Forbidden, password does not match user');
+  }
+
+  res.cookie("user_id", user.id);
   res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect("/urls");
 });
 
@@ -47,7 +130,7 @@ app.get('/hello', (req, res) => {
 
 app.get('/urls', (req, res) => {
   const templateVars = {
-    username: req.cookies["username"], 
+    user: users[req.cookies["user_id"]], 
     urls: urlDatabase
    };
   res.render('urls_index', templateVars);
@@ -56,7 +139,7 @@ app.get('/urls', (req, res) => {
 
 app.get('/urls/new', (req, res) => {
   const templateVars = {
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]],
   };
   res.render("urls_new", templateVars);
 });
@@ -88,7 +171,6 @@ app.get("/u/:shortURL", (req, res) => {
   } else {
     res.statusCode = 404;
     res.end('404 Page Not Found');
-
   }
   
 });
@@ -96,7 +178,7 @@ app.get("/u/:shortURL", (req, res) => {
 
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = { 
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
     shortURL: req.params.shortURL, 
     longURL: urlDatabase[req.params.shortURL]
   }; // longURL may need to change
