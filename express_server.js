@@ -3,12 +3,18 @@ const express = require('express');
 const app = express();
 const PORT = 8080;
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser')
+//const cookieParser = require('cookie-parser')
+const cookieSession = require('cookie-session');
 const bcrypt = require('bcryptjs');
 
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
+//app.use(cookieParser());
+app.use(cookieSession({
+  name: 'user_id',
+  keys: ["key"] // should be in seprate file
+}))
+
 // function below used logic from https://www.programiz.com/javascript/examples/generate-random-strings  (example 1)
 const generateRandomString = function() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -122,7 +128,7 @@ app.post('/register', (req, res) => {
     password: password 
   }
   console.log(users);
-  res.cookie("user_id", users[randomID].id);
+  req.session.user_id = users[randomID].id;
   res.redirect("/urls");
 });
 
@@ -136,10 +142,10 @@ app.post("/login", (req, res) => {
     res.statusCode = 403;
     res.end('403 Forbidden, password does not match user');
   }
-  
-  res.cookie("user_id", user.id);
-  console.log(users);
+  console.log(req.session.user_id);
+  req.session.user_id = user.id;
   res.redirect("/urls");
+  console.log(req.session.user_id);
 });
 
 app.post("/logout", (req, res) => {
@@ -152,17 +158,18 @@ app.get('/hello', (req, res) => {
 });
 
 app.get('/urls', (req, res) => {
-  if(!req.cookies["user_id"]) {
+  console.log(req.session.user_id);
+  if(req.session["user_id"] === undefined) {
     res.redirect("/login");
   }else {
-  //users[req.cookies["user_id"]], 
-  //console.log("email",users[req.cookies["user_id"]]["userID"]);
+  //users[req.session["user_id"]], 
+  //console.log("email",users[req.session["user_id"]]["userID"]);
   const templateVars = {
-    user: users[req.cookies["user_id"]]["email"], 
-    userID: req.cookies["user_id"],
-    urls: urlsForUser(req.cookies["user_id"])
+    user: users[req.session["user_id"]]["email"], 
+    userID: req.session["user_id"],
+    urls: urlsForUser(req.session["user_id"])
   };
-  console.log("user_id:",req.cookies["user_id"]);
+  console.log("user_id:",req.session["user_id"]);
   console.log(templateVars);
   res.render('urls_index', templateVars);
 
@@ -172,26 +179,26 @@ app.get('/urls', (req, res) => {
 
 
 app.get('/urls/new', (req, res) => {
-  if(!req.cookies["user_id"]) {
+  if(!req.session["user_id"]) {
     res.statusCode = 403;
     res.end('403 Forbidden, must be login to create new url');
   }
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session["user_id"]],
   };
   res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => {
-  console.log("cookie id",req.cookies["user_id"]);
-  if (!req.cookies["user_id"]) {
+  console.log("cookie id",req.session["user_id"]);
+  if (!req.session["user_id"]) {
     res.statusCode = 403;
     res.end('403 Forbidden, must be login to create new url');
   }
   const newShortUrl = generateRandomString();
   urlDatabase[newShortUrl] = {
     longURL: req.body.longURL,
-    userID: req.cookies["user_id"]
+    userID: req.session["user_id"]
   };
 
   res.redirect(`/urls/${newShortUrl}`);
@@ -200,10 +207,10 @@ app.post("/urls", (req, res) => {
 
 app.post("/urls/:shortURL/delete", (req, res) => {
   console.log("shortUrl",urlDatabase[req.params.shortURL]);
-  if (!req.cookies["user_id"]){
+  if (!req.session["user_id"]){
     res.statusCode = 403;
     res.end('403 Forbidden user must be login');
-  } else if (urlDatabase[req.params.shortURL]["userID"] !== req.cookies["user_id"]) {
+  } else if (urlDatabase[req.params.shortURL]["userID"] !== req.session["user_id"]) {
     res.statusCode = 403;
     res.end('403 Forbidden user does not own this url');
   } else {
@@ -232,8 +239,8 @@ app.get("/u/:shortURL", (req, res) => {
 
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = { 
-    user: users[req.cookies["user_id"]]["email"], 
-    //userID: req.cookies["user_id"],
+    user: users[req.session["user_id"]]["email"], 
+    //userID: req.session["user_id"],
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]["longURL"]
   }; // longURL may need to change
@@ -241,10 +248,10 @@ app.get('/urls/:shortURL', (req, res) => {
 });
 
 app.post("/urls/:shortURL/edit", (req, res) => {
-  if (!req.cookies["user_id"]){
+  if (!req.session["user_id"]){
     res.statusCode = 403;
     res.end('403 Forbidden user must be login');
-  } else if (urlDatabase[req.params.shortURL]["userID"] !== req.cookies["user_id"]) {
+  } else if (urlDatabase[req.params.shortURL]["userID"] !== req.session["user_id"]) {
     res.statusCode = 403;
     res.end('403 Forbidden user does not own this url');
   } else {
