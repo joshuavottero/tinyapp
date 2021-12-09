@@ -4,7 +4,7 @@ const app = express();
 const PORT = 8080;
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser')
-
+const bcrypt = require('bcryptjs');
 
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
@@ -64,17 +64,17 @@ const users = {
   "aJ48lW" : {
     id: "aJ48lW",
     email: "user@example.com",
-    password: "123"
+    password: bcrypt.hashSync("123", 10)
   },
   "kkkeee" : {
     id: "kkkeee",
     email: "user2@example.com",
-    password: "dishwasher-funk"
+    password: bcrypt.hashSync("dishwasher-funk", 10)
   },
   "user3RandomID" : {
     id: "user3RandomID",
     email: "user3@example.com",
-    password: "123"
+    password: bcrypt.hashSync("123", 10)
   },
 
 }
@@ -114,12 +114,12 @@ app.post('/register', (req, res) => {
     res.statusCode = 404;
     res.end('404 Bad Request email is all ready in use');
   }
-
+  const password = bcrypt.hashSync(req.body.password, 10);
   const randomID = generateRandomString();
   users[randomID] = {
     id: randomID,
     email: req.body.email,
-    password: req.body.password
+    password: password 
   }
   console.log(users);
   res.cookie("user_id", users[randomID].id);
@@ -132,12 +132,13 @@ app.post("/login", (req, res) => {
     res.statusCode = 403;
     res.end('403 Forbidden, user not found');
   }
-  if (user.password !== req.body.password){
+  if (!bcrypt.compareSync(req.body.password,user.password)){
     res.statusCode = 403;
     res.end('403 Forbidden, password does not match user');
   }
-
+  
   res.cookie("user_id", user.id);
+  console.log(users);
   res.redirect("/urls");
 });
 
@@ -209,8 +210,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
     delete urlDatabase[req.params.shortURL];
     res.redirect("/urls");
   }
-  
- 
 });
 
 app.post("/urls/:shortURL", (req, res) => {
