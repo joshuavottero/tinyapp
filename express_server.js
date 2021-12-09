@@ -33,6 +33,18 @@ const findUser = function(userToFind){
 
 }
 
+const urlsForUser = function(id) {
+  let urlArray = {}
+  for (url in urlDatabase) {
+    console.log("url data",urlDatabase[url]);
+    if (urlDatabase[url]["userID"] === id) {
+      urlArray[url ] = urlDatabase[url];
+    }
+  }
+  console.log(urlArray);
+  return urlArray;
+}
+
 const urlDatabase = {
   'b2xVn2': {
     longURL: "http://www.lighthouselabs.ca",
@@ -147,7 +159,7 @@ app.get('/urls', (req, res) => {
   const templateVars = {
     user: users[req.cookies["user_id"]]["email"], 
     userID: req.cookies["user_id"],
-    urls: urlDatabase
+    urls: urlsForUser(req.cookies["user_id"])
   };
   console.log("user_id:",req.cookies["user_id"]);
   console.log(templateVars);
@@ -186,8 +198,18 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect("/urls");
+  console.log("shortUrl",urlDatabase[req.params.shortURL]);
+  if (!req.cookies["user_id"]){
+    res.statusCode = 403;
+    res.end('403 Forbidden user must be login');
+  } else if (urlDatabase[req.params.shortURL]["userID"] !== req.cookies["user_id"]) {
+    res.statusCode = 403;
+    res.end('403 Forbidden user does not own this url');
+  } else {
+    delete urlDatabase[req.params.shortURL];
+    res.redirect("/urls");
+  }
+  
  
 });
 
@@ -220,8 +242,17 @@ app.get('/urls/:shortURL', (req, res) => {
 });
 
 app.post("/urls/:shortURL/edit", (req, res) => {
-  urlDatabase[req.params.shortURL]["longURL"] = req.body.longURL;
-  res.redirect("/urls");
+  if (!req.cookies["user_id"]){
+    res.statusCode = 403;
+    res.end('403 Forbidden user must be login');
+  } else if (urlDatabase[req.params.shortURL]["userID"] !== req.cookies["user_id"]) {
+    res.statusCode = 403;
+    res.end('403 Forbidden user does not own this url');
+  } else {
+    urlDatabase[req.params.shortURL]["longURL"] = req.body.longURL;
+    res.redirect("/urls");
+  }
+
 });
 
 
