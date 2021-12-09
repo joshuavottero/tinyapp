@@ -15,7 +15,8 @@ app.use(cookieSession({
   keys: ["key"] // should be in seprate file
 }))
 
-// function below used logic from https://www.programiz.com/javascript/examples/generate-random-strings  (example 1)
+// this code taken from https://www.programiz.com/javascript/examples/generate-random-strings  (example 1)
+// code has been modifedy to not take prams and will aways return a string of 6 chars  
 const generateRandomString = function() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = ' ';
@@ -26,13 +27,13 @@ const generateRandomString = function() {
  
   return result;
 };
-const findUser = function(userToFind){  
+const getUserByEmail = function(userToFind, dataBase) {  
   if (userToFind === undefined || userToFind == "") {
     return undefined;
   }
-  for (const user in users) {
-    if (users[user]["email"] === userToFind) {
-      return users[user];
+  for (const user in dataBase) {
+    if (dataBase[user]["email"] === userToFind) {
+      return dataBase[user];
     }
   }
   return undefined;
@@ -116,7 +117,7 @@ app.post('/register', (req, res) => {
     res.end('404 Bad Request, password and username must not be empty');
   }
 
-  if (findUser(req.body.email) !== undefined) {
+  if (getUserByEmail(req.body.email, users) !== undefined) {
     res.statusCode = 404;
     res.end('404 Bad Request email is all ready in use');
   }
@@ -133,7 +134,7 @@ app.post('/register', (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  user = findUser(req.body.email);
+  user = getUserByEmail(req.body.email, users);
   if (user === undefined) {
     res.statusCode = 403;
     res.end('403 Forbidden, user not found');
