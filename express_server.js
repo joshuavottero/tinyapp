@@ -34,18 +34,28 @@ const findUser = function(userToFind){
 }
 
 const urlDatabase = {
-  'b2xVn2': 'http://www.lighthouselabs.ca',
-  '9sm5xk': 'http://www.google.com'
+  'b2xVn2': {
+    longURL: "http://www.lighthouselabs.ca",
+    userID: "aJ48lW"
+  },
+  '9sm5xk': {
+    longURL: "http://www.google.com",
+    userID: "aJ48lW"
+  },
+  'esmkxk': {
+    longURL: "http://www.google.com",
+    userID: "kkkeee"
+  }
 };
 
 const users = {
-  "userRandomID" : {
-    id: "userRandomID",
+  "aJ48lW" : {
+    id: "aJ48lW",
     email: "user@example.com",
-    password: "purple-moneky-dinosaur"
+    password: "123"
   },
-  "user2RandomID" : {
-    id: "user2RandomID",
+  "kkkeee" : {
+    id: "kkkeee",
     email: "user2@example.com",
     password: "dishwasher-funk"
   },
@@ -65,14 +75,14 @@ app.get('/', (req, res) => {
 
 app.get('/register', (req, res) => {
   const templateVars = {
-    user: req.cookies["user_id"]
+    user: undefined
   };
   res.render("urls_register", templateVars);
 });
 
 app.get('/login', (req, res) => {
   const templateVars = {
-    user: req.cookies["user_id"]
+    user: undefined
   };
   res.render("urls_login", templateVars);
 });
@@ -84,13 +94,13 @@ app.post("/urls/login", (req, res) => {
 app.post('/register', (req, res) => {
 
   if (req.body.email === "" || req.body.password === "") {
-    res.statusCode = 400;
+    res.statusCode = 404;
     res.end('404 Bad Request, password and username must not be empty');
   }
 
   if (findUser(req.body.email) !== undefined) {
-    res.statusCode = 400;
-    res.end('400 Bad Request email is all ready in use');
+    res.statusCode = 404;
+    res.end('404 Bad Request email is all ready in use');
   }
 
   const randomID = generateRandomString();
@@ -107,11 +117,11 @@ app.post('/register', (req, res) => {
 app.post("/login", (req, res) => {
   user = findUser(req.body.email);
   if (user === undefined) {
-    res.statusCode = 400;
+    res.statusCode = 403;
     res.end('403 Forbidden, user not found');
   }
   if (user.password !== req.body.password){
-    res.statusCode = 400;
+    res.statusCode = 403;
     res.end('403 Forbidden, password does not match user');
   }
 
@@ -129,15 +139,30 @@ app.get('/hello', (req, res) => {
 });
 
 app.get('/urls', (req, res) => {
+  if(!req.cookies["user_id"]) {
+    res.redirect("/login");
+  }else {
+  //users[req.cookies["user_id"]], 
+  //console.log("email",users[req.cookies["user_id"]]["userID"]);
   const templateVars = {
-    user: users[req.cookies["user_id"]], 
+    user: users[req.cookies["user_id"]]["email"], 
+    userID: req.cookies["user_id"],
     urls: urlDatabase
-   };
+  };
+  console.log("user_id:",req.cookies["user_id"]);
+  console.log(templateVars);
   res.render('urls_index', templateVars);
+
+  }
+ 
 });
 
 
 app.get('/urls/new', (req, res) => {
+  if(!req.cookies["user_id"]) {
+    res.statusCode = 403;
+    res.end('403 Forbidden, must be login to create new url');
+  }
   const templateVars = {
     user: users[req.cookies["user_id"]],
   };
@@ -145,8 +170,16 @@ app.get('/urls/new', (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
+  console.log("cookie id",req.cookies["user_id"]);
+  if (!req.cookies["user_id"]) {
+    res.statusCode = 403;
+    res.end('403 Forbidden, must be login to create new url');
+  }
   const newShortUrl = generateRandomString();
-  urlDatabase[newShortUrl] = req.body.longURL;
+  urlDatabase[newShortUrl] = {
+    longURL: req.body.longURL,
+    userID: req.cookies["user_id"]
+  };
 
   res.redirect(`/urls/${newShortUrl}`);
  
@@ -166,7 +199,7 @@ app.post("/urls/:shortURL", (req, res) => {
 
 app.get("/u/:shortURL", (req, res) => {
   if (urlDatabase[req.params.shortURL]) {
-    const longURL = urlDatabase[req.params.shortURL];
+    const longURL = urlDatabase[req.params.shortURL]["longURL"];
     res.redirect(longURL);
   } else {
     res.statusCode = 404;
@@ -178,15 +211,16 @@ app.get("/u/:shortURL", (req, res) => {
 
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = { 
-    user: users[req.cookies["user_id"]],
-    shortURL: req.params.shortURL, 
-    longURL: urlDatabase[req.params.shortURL]
+    user: users[req.cookies["user_id"]]["email"], 
+    //userID: req.cookies["user_id"],
+    shortURL: req.params.shortURL,
+    longURL: urlDatabase[req.params.shortURL]["longURL"]
   }; // longURL may need to change
   res.render('urls_show', templateVars);
 });
 
 app.post("/urls/:shortURL/edit", (req, res) => {
-  urlDatabase[req.params.shortURL] = req.body.longURL;
+  urlDatabase[req.params.shortURL]["longURL"] = req.body.longURL;
   res.redirect("/urls");
 });
 

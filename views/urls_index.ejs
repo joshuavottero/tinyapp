@@ -24,9 +24,10 @@
       </thead>
       <tbody>
         <% for(let url in urls) { %>
+          <% if (urls[url]["userID"] === userID) {%>
           <tr>
             <td><%= url %></td>
-            <td><%= urls[url] %> </td>
+            <td><%= urls[url]["longURL"] %> </td>
             <td>
               <form method="POST" action="/urls/<%= url %>/delete">
                 <div class="form-inline mb-2">
@@ -42,6 +43,7 @@
               </form>
             </td>
           </tr>
+          <%  }%>
         <% } %>
       </tbody>
     </table>
